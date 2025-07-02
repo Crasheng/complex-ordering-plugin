@@ -1,0 +1,28 @@
+{
+    "name": "osmanco/complex-collection",
+    "description": "A complex collection ordering addon for Statamic",
+    "type": "statamic-addon",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Osmanco\\ComplexCollection\\": "src"
+        }
+    },
+    "extra": {
+        "statamic": {
+            "name": "Complex Collection Ordering",
+            "description": "A complex collection ordering addon for Statamic"
+        },
+        "laravel": {
+            "providers": [
+                "Osmanco\\ComplexCollection\\ServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "statamic/cms": "^5.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
