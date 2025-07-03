@@ -19,6 +19,7 @@ A powerful Statamic addon for managing the order of entries in collections with 
 ## Installation
 
 1. Add the repository to your `composer.json`:
+
    ```json
    {
        "repositories": [
@@ -31,13 +32,13 @@ A powerful Statamic addon for managing the order of entries in collections with 
    ```
 
 2. Require the package:
+
    ```bash
    composer require osmanco/complex-collection:dev-main
    ```
-   
-   > **Note**: Replace `dev-main` with the appropriate branch or version tag.
 
 3. Publish the configuration file:
+
    ```bash
    php artisan vendor:publish --tag=config --provider="OsmanCo\ComplexCollection\ServiceProvider"
    ```
