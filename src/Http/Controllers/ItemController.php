@@ -4,27 +4,47 @@ namespace Osmanco\ComplexCollection\Http\Controllers;
 
 use Osmanco\ComplexCollection\Models\Item;
 use Illuminate\Http\Request;
-use Statamic\Facades\CP\Toast;
-use Statamic\Facades\GraphQL;
-use Illuminate\Support\Facades\Storage;
-use Statamic\Http\Controllers\Controller;
+use Statamic\Facades\Entry;
+use Statamic\Support\Str;
+use Statamic\Facades\Site;
+use Statamic\Facades\Collection;
+use Statamic\Http\Controllers\CP\CpController;
+use Statamic\Support\Facades\Action;
+use Statamic\Facades\User;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Artisan;
+use Statamic\Entries\Entry as StatamicEntry;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Artisan;
-use Statamic\Facades\Entry;
-use Statamic\Entries\Entry as StatamicEntry;
+use Illuminate\Support\Facades\Storage;
+use Statamic\Support\Facades\Toast;
 
-class ItemController extends Controller
+class ItemController extends CpController
 {
+    /**
+     * Get a configuration value with an optional default
+     *
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    protected function getConfig($key, $default = null)
+    {
+        return config("complex-collection.{$key}", $default);
+    }
+
     public function index()
     {
         // Get the selected main category from the request
         $selectedMainCategory = request('main_category');
         $selectedStaffCategory = request('staff_category');
+        $collectionHandle = $this->getConfig('collection_handle', 'team_members');
+        $mainCategoryField = $this->getConfig('main_category_field', 'main_staff_category');
+        $subCategoryField = $this->getConfig('sub_category_field', 'staff_category');
 
         // Get all main staff categories
         $mainCategories = \Statamic\Facades\Term::query()
-            ->where('taxonomy', 'main_staff_category')
+            ->where('taxonomy', $mainCategoryField)
             ->get()
             ->map(function ($term) {
                 return [
@@ -37,7 +57,7 @@ class ItemController extends Controller
         $staffCategories = collect();
         if ($selectedMainCategory) {
             $staffCategories = \Statamic\Facades\Term::query()
-                ->where('taxonomy', 'staff_category')
+                ->where('taxonomy', $subCategoryField)
                 ->whereJsonContains('data->parent', $selectedMainCategory)
                 ->get()
                 ->map(function ($term) {
@@ -50,15 +70,17 @@ class ItemController extends Controller
 
         // Build the query
         $query = \Statamic\Entries\Entry::query()
-            ->where('collection', 'team_members')->orderBy('order', 'asc');;
+            ->where('collection', 'team_members')
+            ->where('published', true)
+            ->orderBy('order', 'asc');
 
         // Apply filters if selected
         if ($selectedMainCategory) {
-            $query->where('main_staff_category', $selectedMainCategory);
+            $query->where($mainCategoryField, $selectedMainCategory);
         }
 
         if ($selectedStaffCategory) {
-            $query->where('staff_category', $selectedStaffCategory);
+            $query->where($subCategoryField, $selectedStaffCategory);
         }
 
         $items = $query->paginate(100);
@@ -180,34 +202,28 @@ class ItemController extends Controller
      */
     public function getStaffCategories($mainCategory)
     {
-        // Get all staff categories
-        $staffCategories = \Statamic\Facades\Term::query()
-            ->where('taxonomy', 'staff_category')
+        $collectionHandle = $this->getConfig('collection_handle', 'team_members');
+        $mainCategoryField = $this->getConfig('main_category_field', 'main_staff_category');
+        $subCategoryField = $this->getConfig('sub_category_field', 'staff_category');
+
+        $categories = Entry::query()
+            ->where('collection', $collectionHandle)
+            ->where('status', 'published')
+            ->where($mainCategoryField, $mainCategory)
             ->get()
-            ->filter(function ($term) use ($mainCategory) {
-                // Check if the term has the main_staff_category field matching our filter
-                $termMainCategory = $term->get('main_staff_category');
+            ->pluck($subCategoryField)
+            ->unique()
+            ->values();
 
-                // Handle both string and array cases
-                if (is_array($termMainCategory)) {
-                    return in_array($mainCategory, $termMainCategory);
-                }
-
-                return $termMainCategory === $mainCategory;
-            })
-            ->map(function ($term) {
-                return [
-                    'slug' => $term->slug(),
-                    'title' => $term->title()
-                ];
-            })
-            ->values(); // Reset keys to sequential numbers
-
-        return response()->json($staffCategories);
+        return response()->json($categories);
     }
 
     public function updateOrder(Request $request)
     {
+        $collectionHandle = $this->getConfig('collection_handle', 'team_members');
+        $mainCategoryField = $this->getConfig('main_category_field', 'main_staff_category');
+        $subCategoryField = $this->getConfig('sub_category_field', 'staff_category');
+
         // Get the current category from the request or session
         $mainCategory = $request->input('main_category') ?? session('current_main_category');
         $staffCategory = $request->input('staff_category') ?? session('current_staff_category');
@@ -221,15 +237,15 @@ class ItemController extends Controller
 
         // Start building the base query
         $query = DB::table('entries')
-            ->where('collection', 'team_members')
+            ->where('collection', $collectionHandle)
             ->where('published', 1);
 
         // Add category filters if provided
         if ($mainCategory) {
-            $query->where('data->main_staff_category', $mainCategory);
+            $query->where('data->' . $mainCategoryField, $mainCategory);
 
             if ($staffCategory) {
-                $query->where('data->staff_category', $staffCategory);
+                $query->where('data->' . $subCategoryField, $staffCategory);
             }
         }
 
@@ -264,8 +280,8 @@ class ItemController extends Controller
                     'id' => $entry->id,
                     'order' => $order,
                     'title' => $data['title'] ?? 'No Title',
-                    'main_staff_category' => $data['main_staff_category'] ?? null,
-                    'staff_category' => $data['staff_category'] ?? null,
+                    'main_staff_category' => $data[$mainCategoryField] ?? null,
+                    'staff_category' => $data[$subCategoryField] ?? null,
                     'raw_data' => $data
                 ];
 

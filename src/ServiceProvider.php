@@ -23,6 +23,16 @@ class ServiceProvider extends AddonServiceProvider
         // Load views
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'complex-collection-ordering');
 
+        // Merge config
+        $this->mergeConfigFrom(__DIR__.'/../../config/complex-collection.php', 'complex-collection');
+
+        // Publish config
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../../config/complex-collection.php' => config_path('complex-collection.php'),
+            ], 'config');
+        }
+
         // Publish migrations
         $this->publishes([
             __DIR__.'/../database/migrations' => database_path('migrations'),

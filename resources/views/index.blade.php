@@ -219,7 +219,7 @@
                         $firstCategory = $mainCategories->first();
                         $selectedMainCategory = $selectedMainCategory ?? $firstCategory['slug'] ?? '';
                     @endphp
-                    <select name="main_category" id="main_category" class="input-text" onchange="this.form.submit()">
+                    <select name="main_category" id="main_category" class="input-text" >
                         @foreach($mainCategories as $category)
                             <option value="{{ $category['slug'] }}" {{ $selectedMainCategory == $category['slug'] ? 'selected' : '' }}>
                                 {{ $category['title'] }}
@@ -251,17 +251,43 @@
                 @endif
             </div>
         </form>
-
-        @push('scripts')
-           {{-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"> --}}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const mainCategorySelect = document.getElementById('main_category');
                 const staffCategorySelect = document.getElementById('staff_category');
                 const form = document.getElementById('categoryFilterForm');
+                console.log("osman");
+                console.log(mainCategorySelect.value);
+                console.log(staffCategorySelect.value);
+                console.log(form);
+                if (mainCategorySelect) {
+                    mainCategorySelect.addEventListener('change', function(e) {
+                        e.preventDefault();
+                        staffCategorySelect.value = '';
+                        // Only reset staff category if main category actually changed
+                         console.log(mainCategorySelect.value);
+                        form.submit();
+                    });
+                }
 
+                if (staffCategorySelect) {
+                    staffCategorySelect.addEventListener('change', function(e) {
+                        e.preventDefault();
+                        // Just submit the form without resetting any values
+                        form.submit();
+                    });
+                }
+            });
+        </script>
+        {{-- <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const mainCategorySelect = document.getElementById('main_category');
+                const staffCategorySelect = document.getElementById('staff_category');
+                const form = document.getElementById('categoryFilterForm');
+                console.log("osman");
+                console.log(mainCategorySelect);
+                console.log(staffCategorySelect);
+                console.log(form);
                 if (mainCategorySelect) {
                     mainCategorySelect.addEventListener('change', function() {
                         // Reset staff category when main category changes
@@ -272,10 +298,7 @@
                     });
                 }
             });
-        </script>
-        @endpush
-    {{-- </div> --}}
-
+        </script> --}}
     <div class="p-0">
         <table class="data-table">
             <thead>
