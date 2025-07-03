@@ -3,5 +3,5 @@
     'action' => cp_route('complex-collection-ordering.store'),
     'method' => 'POST',
     'submitText' => 'Add Team Member',
-    'item' => new \Complex\CollectionOrdering\Models\Item()
+    'item' => new \Osmanco\ComplexCollection\Models\Item()
 ])
