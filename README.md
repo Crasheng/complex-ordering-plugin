@@ -25,7 +25,7 @@ A powerful Statamic addon for managing the order of entries in collections with 
        "repositories": [
            {
                "type": "vcs",
-               "url": "git@github.com:your-username/complex-collection-ordering.git"
+               "url": "https://github.com/Crasheng/complex-ordering-plugin.git"
            }
        ]
    }
@@ -51,11 +51,23 @@ After publishing the configuration file, you'll find it at `config/complex-colle
 return [
     /*
     |--------------------------------------------------------------------------
+    | Navigation Title
+    |--------------------------------------------------------------------------
+    |
+    | The display name for the navigation item in the control panel.
+    | Customize this to match your collection's purpose.
+    |
+    */
+    'navigation_title' => 'Team Members Ordering',
+
+    /*
+    |--------------------------------------------------------------------------
     | Collection Handle
     |--------------------------------------------------------------------------
     |
     | The handle of the collection you want to manage with this addon.
     |
+    | Example: 'team_members', 'products', 'portfolio_items'
     */
     'collection_handle' => 'team_members',
 
@@ -67,6 +79,7 @@ return [
     | The field handle for the main category in your collection's blueprint.
     | This is the top-level category for grouping entries.
     |
+    | Example: 'main_staff_category', 'product_category', 'portfolio_section'
     */
     'main_category_field' => 'main_staff_category',
 
@@ -78,6 +91,7 @@ return [
     | The field handle for the sub-category in your collection's blueprint.
     | This is the second-level category for more specific grouping.
     |
+    | Example: 'staff_category', 'product_subcategory', 'portfolio_tags'
     */
     'sub_category_field' => 'staff_category',
 ];
