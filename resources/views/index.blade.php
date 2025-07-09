@@ -2,11 +2,11 @@
 
 @section('heading', 'Team Members')
 
-@section('actions')
+{{-- @section('actions')
     <a href="{{ cp_route('complex-collection-ordering.create') }}" class="btn-primary">
         Add Team Member
     </a>
-@endsection
+@endsection --}}
 
 @section('head')
     @parent
@@ -306,30 +306,30 @@
                     <th>Name</th>
                     <th>Position</th>
                     <th>Category</th>
-                    <th>Actions</th>
+                    {{-- <th>Actions</th> --}}
                 </tr>
             </thead>
            <tbody id="sortable" class="divide-y divide-gray-200">
         @forelse($items as $item)
-        <tr style="{{ $item->get('order') == 1 ? 'background-color: yellow' : '' }}" class=" border-b cursor-move hover:bg-gray-50" data-id="{{ $item->id() }}" >
+        <tr class=" border-b cursor-move hover:bg-gray-50" data-id="{{ $item->id() }}" >
             <td class="flex items-center">
                 <div class="drag-handle">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
                     </svg>
                 </div>
                 @php
-                    $picture = is_array($item->picture) ? ($item->picture[0] ?? null) : $item->picture;
-                    $pictureUrl = is_string($picture) ? Storage::disk('s3')->url($picture) : null;
+                    $picture = is_array($item->picture) ? ($item->picture->url()?? null) : $item->picture;
+                    $pictureUrl = isset($picture) ? $picture->url() : null;
                 @endphp
                 @if($pictureUrl)
                     <img src="{{ $pictureUrl }}"
                          alt="{{ $item->title }}"
-                         class="w-10 h-10 rounded-full mr-3 object-cover"
-                         style="width: 40px; height: 40px;"
+                         class="w-20 h-20 rounded-full mr-3 object-cover"
+                         style="width: 60px; height: 60px;"
                          loading="lazy">
                 @else
-                    <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-3" style="width: 40px; height: 40px;">
+                    <div class="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 mr-3" style="width: 40px; height: 40px;">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                         </svg>
@@ -339,13 +339,11 @@
             </td>
             <td>{{ $item->get('position') }}</td>
 
-            <td > @php
-        $categoryClass = $staffCategoryColors[$item->get('staff_category')] ?? 'bg-gray-100 text-gray-800';
-    @endphp
-    <span class="px-2 py-1 rounded-full text-xs font-medium {{ $categoryClass }}">
+            <td > 
+    <span class="px-2 py-1 rounded-full text-xs font-medium ">
         {{ $item->get('staff_category') }}
     </span> </td>
-            <td class="flex space-x-2">
+            {{-- <td class="flex space-x-2">
                 <a href="{{ cp_route('complex-collection-ordering.edit', $item->id) }}" class="text-blue-500 hover:text-blue-700" title="Edit">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -360,7 +358,7 @@
                         </svg>
                     </button>
                 </form>
-            </td>
+            </td> --}}
         </tr>
     @empty
         <tr>

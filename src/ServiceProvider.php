@@ -26,7 +26,7 @@ class ServiceProvider extends AddonServiceProvider
         // Publish config
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../../config/complex-collection.php' => config_path('complex-collection.php'),
+                __DIR__.'/../config/complex-collection.php' => config_path('complex-collection.php'),
             ], 'config');
         }
 

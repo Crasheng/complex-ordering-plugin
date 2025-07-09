@@ -1,4 +1,4 @@
-@extends('statamic::layout')
+{{-- @extends('statamic::layout')
 
 @section('title', $title)
 
@@ -361,4 +361,4 @@
             });
         </script>
     @endpush
-@endsection
+@endsection --}}
