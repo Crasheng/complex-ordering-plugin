@@ -83,7 +83,29 @@ class ItemController extends CpController
             $query->where($subCategoryField, $selectedStaffCategory);
         }
 
-        $items = $query->paginate(100);
+
+        if ($selectedStaffCategory) {
+            $allEntries = $query->get()->sortBy(fn($entry) => $entry->get('order'))->values()->pluck('id');
+            $page = request()->input('page', 1);
+            $perPage = 100;
+            $slicedIds = $allEntries->slice(($page - 1) * $perPage, $perPage)->values();
+            $entries = Entry::query()
+                ->whereIn('id', $slicedIds)
+                ->get()
+                ->sortBy(fn($entry) => $slicedIds->search($entry->id()))
+                ->values();
+            $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+                $entries,
+                $allEntries->count(),
+                $perPage,
+                $page,
+                ['path' => request()->url(), 'query' => request()->query()]
+            );
+            $items = $paginator;
+
+        } else {
+            $items = $query->paginate(100);
+        }
 
         $staffCategoryColors = [
             'category1' => 'bg-blue-100 text-blue-800',
@@ -225,10 +247,15 @@ class ItemController extends CpController
         $subCategoryField = $this->getConfig('sub_category_field', 'staff_category');
 
         // Get the current category from the request or session
-        $mainCategory = $request->input('main_category') ?? session('current_main_category');
-        $staffCategory = $request->input('staff_category') ?? session('current_staff_category');
+        $mainCategory = $request->input('main_category');
+        $staffCategory = $request->input('staff_category');
 
         // Log the received data
+        \Log::info('OSMANNNNN', [
+            'order' => $request->order,
+            'main_category' => $mainCategory,
+            'staff_category' => $staffCategory
+        ]);
         \Log::info('Updating order with data:', [
             'order' => $request->order,
             'main_category' => $mainCategory,
@@ -265,49 +292,64 @@ class ItemController extends CpController
             ]);
         }
 
-        // Process the entries and ensure all have an order
-        $allEntries = collect();
-        $orderCounter = 1;
+        
+        if (is_null($staffCategory)) {
+            // If staff category is null, we're ordering for the parent categories
+            // Update the order column in the entries table
+               // Process the entries and ensure all have an order
+            $allEntries = collect();
+            $orderCounter = 1;
 
-        // First, process the entries in the order they were received from the UI
-        foreach ($request->order as $id) {
-            $entry = $entries->firstWhere('id', $id);
-            if ($entry) {
-                $data = json_decode($entry->data, true);
-                $order = $orderCounter++;
+            // First, process the entries in the order they were received from the UI
+            foreach ($request->order as $id) {
+                $entry = $entries->firstWhere('id', $id);
+                if ($entry) {
+                    $data = json_decode($entry->data, true);
+                    $order = $orderCounter++;
 
-                $entryData = (object) [
-                    'id' => $entry->id,
-                    'order' => $order,
-                    'title' => $data['title'] ?? 'No Title',
-                    'main_staff_category' => $data[$mainCategoryField] ?? null,
-                    'staff_category' => $data[$subCategoryField] ?? null,
-                    'raw_data' => $data
-                ];
+                    $entryData = (object) [
+                        'id' => $entry->id,
+                        'order' => $order,
+                        'title' => $data['title'] ?? 'No Title',
+                        'main_staff_category' => $data[$mainCategoryField] ?? null,
+                        'staff_category' => $data[$subCategoryField] ?? null,
+                        'raw_data' => $data
+                    ];
 
-                $allEntries->push($entryData);
+                    $allEntries->push($entryData);
+                }
+            }
+
+        } else {
+            // If staff category is not null, we're ordering the subcategories
+            // Update the order property in the entry->data json
+            $allEntries = collect();
+            $orderCounter = 1;
+
+            // First, process the entries in the order they were received from the UI
+            foreach ($request->order as $id) {
+                $entry = $entries->firstWhere('id', $id);
+                if ($entry) {
+                    $data = json_decode($entry->data, true);
+                    \Log::info('before edit',$data);
+                    $data['order'] = $orderCounter++;
+                    $order = $entry->order;
+                    \Log::info('after edit',$data);
+                    $entryData = (object) [
+                        'id' => $entry->id,
+                        'order' => $order,
+                        'title' => $data['title'] ?? 'No Title',
+                        'main_staff_category' => $data[$mainCategoryField] ?? null,
+                        'staff_category' => $data[$subCategoryField] ?? null,
+                        'raw_data' => $data
+                    ];
+
+                    $allEntries->push($entryData);
+                }
             }
         }
 
-        // Then add any entries that weren't in the request (shouldn't happen, but just in case)
-        // foreach ($entries as $entry) {
-        //     if (!$allEntries->contains('id', $entry->id)) {
-        //         $data = json_decode($entry->data, true);
-        //         $order = $orderCounter++;
-
-        //         $entryData = (object) [
-        //             'id' => $entry->id,
-        //             'order' => $order,
-        //             'title' => $data['title'] ?? 'No Title',
-        //             'main_staff_category' => $data['main_staff_category'] ?? null,
-        //             'staff_category' => $data['staff_category'] ?? null,
-        //             'raw_data' => $data
-        //         ];
-
-        //         $allEntries->push($entryData);
-        //     }
-        // }
-
+     
         // Start a database transaction to ensure consistency
         DB::beginTransaction();
 
@@ -316,11 +358,13 @@ class ItemController extends CpController
             $updatedEntries = [];
 
             foreach ($allEntries as $entry) {
-                $previousOrder = $entry->raw_data['order'] ?? null;
+                $previousOrderColumn = $entry->order;
+                $previousOrderProperty = $entry->raw_data['order'];
                 $newOrder = $entry->order;
+                $newOrderProperty = $entry->raw_data['order'];
 
                 // Update both the order column and the order in the data JSON
-                $entry->raw_data['order'] = $newOrder;
+                $entry->raw_data['order'] = $newOrderProperty;
 
                 DB::table('entries')
                     ->where('id', $entry->id)
@@ -332,15 +376,20 @@ class ItemController extends CpController
                 $updatedEntries[] = [
                     'id' => $entry->id,
                     'title' => $entry->title,
-                    'previous_order' => $previousOrder,
+                    'previous_order' => $previousOrderColumn,
+                    'previous_orderProperty' => $previousOrderProperty,
                     'new_order' => $newOrder,
+                    'new_orderProperty' => $newOrderProperty,
                     'main_category' => $entry->main_staff_category,
                     'staff_category' => $entry->staff_category
                 ];
 
                 \Log::info("Updated order for entry {$entry->id} from " .
-                    (is_null($previousOrder) ? 'null' : $previousOrder) .
+                    (is_null($previousOrderColumn) ? 'null' : $previousOrderColumn) .
                     " to $newOrder");
+                \Log::info("Updated order for raw data {$entry->id} from " .
+                    (is_null($previousOrderProperty) ? 'null' : $previousOrderProperty) .
+                    " to $newOrderProperty");
             }
 
             // Commit the transaction

@@ -133,13 +133,16 @@
                     });
 
                     console.log('Sending order:', order);
-
+const mainCategory = $('#main_category').val();
+                    const staffCategory = $('#staff_category').val();
                     $.ajax({
                         url: '{{ cp_route('complex-collection-ordering.update-order') }}',
                         method: 'POST',
                         data: {
                             _token: '{{ csrf_token() }}',
-                            order: order
+                            order: order,
+                            main_category: mainCategory,
+                            staff_category: staffCategory
                         },
                         success: function(response) {
                             console.log('Order updated successfully', response);
