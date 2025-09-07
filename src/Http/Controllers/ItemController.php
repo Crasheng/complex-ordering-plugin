@@ -79,8 +79,26 @@ class ItemController extends CpController
             $query->where($mainCategoryField, $selectedMainCategory);
         }
 
+            if ($selectedMainCategory) {
+                 $query->whereRaw("
+                        JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.member_category')) AS JSON),
+                            '$.main_category'
+                        )
+                        ) = ?
+                    ", $selectedMainCategory);
+    }
+
         if ($selectedStaffCategory) {
-            $query->where($subCategoryField, $selectedStaffCategory);
+             $query->whereRaw("
+                        JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.member_category')) AS JSON),
+                            '$.child_category'
+                        )
+                        ) = ?
+                    ", $selectedStaffCategory);
         }
 
 
