@@ -75,11 +75,8 @@ class ItemController extends CpController
             ->orderBy('order', 'asc');
 
         // Apply filters if selected
-        if ($selectedMainCategory) {
-            $query->where($mainCategoryField, $selectedMainCategory);
-        }
 
-            if ($selectedMainCategory) {
+        if ($selectedMainCategory) {
                  $query->whereRaw("
                         JSON_UNQUOTE(
                         JSON_EXTRACT(
@@ -88,14 +85,22 @@ class ItemController extends CpController
                         )
                         ) = ?
                     ", $selectedMainCategory);
-    }
+        }
 
+        // if ($selectedMainCategory) {
+        //     $query->where($mainCategoryField, $selectedMainCategory);
+        // }
+
+        // if ($selectedStaffCategory) {
+        //     $query->where($subCategoryField, $selectedStaffCategory);
+        // }
+        
         if ($selectedStaffCategory) {
-             $query->whereRaw("
+         $query->whereRaw("
                         JSON_UNQUOTE(
                         JSON_EXTRACT(
                             CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.member_category')) AS JSON),
-                            '$.child_category'
+                            '$.main_category'
                         )
                         ) = ?
                     ", $selectedStaffCategory);
