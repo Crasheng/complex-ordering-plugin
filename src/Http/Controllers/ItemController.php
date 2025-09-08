@@ -100,7 +100,7 @@ class ItemController extends CpController
                         JSON_UNQUOTE(
                         JSON_EXTRACT(
                             CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.member_category')) AS JSON),
-                            '$.main_category'
+                            '$.child_category'
                         )
                         ) = ?
                     ", $selectedStaffCategory);
@@ -292,10 +292,26 @@ class ItemController extends CpController
 
         // Add category filters if provided
         if ($mainCategory) {
-            $query->where('data->' . $mainCategoryField, $mainCategory);
+            // $query->where('data->' . $mainCategoryField, $mainCategory);
+            $query->whereRaw("
+                        JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.member_category')) AS JSON),
+                            '$.main_category'
+                        )
+                        ) = ?
+                    ", $mainCategory);
 
             if ($staffCategory) {
-                $query->where('data->' . $subCategoryField, $staffCategory);
+                // $query->where('data->' . $subCategoryField, $staffCategory);
+                $query->whereRaw("
+                JSON_UNQUOTE(
+                JSON_EXTRACT(
+                    CAST(JSON_UNQUOTE(JSON_EXTRACT(data, '$.member_category')) AS JSON),
+                    '$.child_category'
+                )
+                ) = ?
+            ", $staffCategory);
             }
         }
 
@@ -382,9 +398,9 @@ class ItemController extends CpController
 
             foreach ($allEntries as $entry) {
                 $previousOrderColumn = $entry->order;
-                $previousOrderProperty = $entry->raw_data['order'];
+                $previousOrderProperty = $entry->raw_data['order'] ?? 0;
                 $newOrder = $entry->order;
-                $newOrderProperty = $entry->raw_data['order'];
+                $newOrderProperty = $entry->raw_data['order'] ?? 0;
 
                 // Update both the order column and the order in the data JSON
                 $entry->raw_data['order'] = $newOrderProperty;
